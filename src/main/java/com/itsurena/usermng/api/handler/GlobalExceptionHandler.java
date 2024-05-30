@@ -7,10 +7,13 @@ import com.itsurena.usermng.exception.UserDataNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.security.InvalidParameterException;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -39,6 +42,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResDto> handleGeneralException(Exception e) {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResDto> handleValidationExceptions(
+            MethodArgumentNotValidException ex) {
+        String msg = ex.getBindingResult().getAllErrors()
+                .stream()
+                .map(objectError -> objectError.getDefaultMessage())
+                .collect(Collectors.joining(",And "));
+        ErrorResDto errorResDto = ErrorResDto.builder()
+                .message(msg)
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .build();
+
+        return new ResponseEntity<>(errorResDto, HttpStatus.BAD_REQUEST);
     }
 
 }
